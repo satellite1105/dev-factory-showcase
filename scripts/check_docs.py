@@ -13,11 +13,10 @@ from urllib.parse import unquote, urlsplit
 
 EXIT_OK, EXIT_VIOLATION, EXIT_USAGE = 0, 1, 2
 REQUIRED_FILES = (
-    "README.md", "LICENSE", "SECURITY.md", ".gitignore",
+    "README.md", "LICENSE", "LICENSE-docs.md", "SECURITY.md", ".gitignore",
     "docs/architecture.md", "docs/development-flow.md", "docs/roles.md",
     "docs/delegation-and-state.md", "docs/verification-status.md",
-    "docs/case-study.md", "docs/prepublish-checklist.md",
-    "docs/rights-and-attribution.md", "docs/public-release-gate.md",
+    "docs/case-study.md", "docs/rights-and-attribution.md",
     "examples/dummy-project/README.md", "examples/dummy-project/spec.md",
     "examples/dummy-project/PROJECT_STATE.md", "examples/dummy-project/REVIEW.md",
     "scripts/prepublish_check.py", "scripts/test_prepublish_check.py",

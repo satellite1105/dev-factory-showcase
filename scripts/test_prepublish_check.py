@@ -197,10 +197,6 @@ class TestPrepublish(unittest.TestCase):
                        "." + "claude/" + "hooks" + "/fixture"):
             self.detects("internal-config-path", sample)
 
-    def test_snapshot_references(self):
-        for separator in ("/", "_", "-"):
-            self.detects("usage" + "-snapshot", "prefix usage" + separator + "snapshot suffix")
-
     def test_file_session_urls(self):
         for number, sample in enumerate(session_urls()):
             with self.subTest(pattern=number):
@@ -529,7 +525,6 @@ class TestPrepublish(unittest.TestCase):
             "denylist": term,
             "secret-assignment": "token" + " = Ab4cD8eF2gH6jK9m",
             "internal-config-path": "." + "claude/" + "hooks/fixture",
-            "usage" + "-snapshot": "usage" + "/snapshot",
             "external-skill-mention": name,
         }
         self.hidden_values.extend(samples.values())

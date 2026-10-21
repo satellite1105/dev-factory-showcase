@@ -5,8 +5,7 @@ security guarantee.
 
 If you notice a vulnerability or an accidental inclusion of a secret, please
 use GitHub's private vulnerability reporting: open the **Security** tab and
-choose **Report a vulnerability**. The author will enable this feature after
-the repository becomes Public.
+choose **Report a vulnerability**.
 
 If private reporting is unavailable, open an issue with only a minimal request
 for a private contact channel. Do not include secret values, vulnerability

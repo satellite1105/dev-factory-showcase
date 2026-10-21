@@ -81,8 +81,13 @@ class TestCheckDocs(unittest.TestCase):
         self.assertIn("[external-links] 0 not checked", out)
 
     def test_required_file_missing(self):
-        (self.root / "LICENSE").unlink()
-        self.assert_failure("required-file")
+        for rel in ("LICENSE", "LICENSE-docs.md"):
+            with self.subTest(file=rel):
+                path = self.root / rel
+                original = path.read_text(encoding="utf-8")
+                path.unlink()
+                self.assert_failure("required-file")
+                path.write_text(original, encoding="utf-8")
 
     def test_broken_link(self):
         self.append("README.md", "[missing](missing.md)")

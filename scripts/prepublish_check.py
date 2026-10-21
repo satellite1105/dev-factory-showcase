@@ -59,7 +59,6 @@ ASSIGN_RE = re.compile(
     r"([^\s'\"`,;\]}]+)", re.IGNORECASE)
 VALUE_RE = re.compile(r"[A-Za-z0-9_\-+/=.]{12,}\Z")
 INTERNAL_RE = re.compile(r"\." + r"claude/(?:settings[^/\s]*\.json|hooks/)")
-USAGE_RE = re.compile(r"usage" + r"[/_-]snapshot")
 HTTP_URL_RE = re.compile(r"\bhttps?" + r"://[^\s<>\"'()\[\]{},;]+", re.IGNORECASE)
 SESSION_PATHS = (
     ("claude" + ".ai", re.compile(r"/(?:code/" + r"session_|chat/|share/)", re.IGNORECASE)),
@@ -102,7 +101,6 @@ def scan_text(rel: str, text: str, ctx: ScanContext, *,
         (HOME_RE, "home-path", "home directory path detected"),
         (KEY_RE, "api-key-like", "credential-like text detected"),
         (INTERNAL_RE, "internal-config-path", "internal configuration path detected"),
-        (USAGE_RE, "usage" + "-snapshot", "usage snapshot reference detected"),
     ):
         for match in regex.finditer(text):
             add(category, match.start(), message)

@@ -45,5 +45,3 @@ MIT の全文は [LICENSE](../LICENSE)、文書のライセンス宣言は [LICE
 
 - [README に戻る](../README.md)
 - [LICENSE](../LICENSE)
-- [公開前チェックリスト](prepublish-checklist.md)
-- [公開ゲート](public-release-gate.md)

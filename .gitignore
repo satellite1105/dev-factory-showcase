@@ -1,0 +1,11 @@
+.env*
+!.env.example
+*.local.*
+denylist.local.txt
+skill-names.local.txt
+tmp/
+__pycache__/
+*.pyc
+.DS_Store
+*.pem
+*.key

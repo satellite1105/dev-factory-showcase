@@ -19,20 +19,23 @@ flowchart LR
         ARCHITECT["architect(設計) / Claude"]
         REVIEWER["reviewer(検証) / Claude"]
         CODEX["Codex / 実装・デバッグ"]
-        CODER["coder(実装) / Claude"]
-        DEBUGGER["debugger(デバッグ) / Claude"]
+        CODER["coder(実装) / Claude<br/>Codex のフォールバック先"]
+        DEBUGGER["debugger(デバッグ) / Claude<br/>Codex のフォールバック先"]
         LEADER --> PLANNER
         LEADER --> ARCHITECT
         LEADER --> REVIEWER
         LEADER --> CODEX
-        CODEX -.->|"フォールバック"| CODER
-        CODEX -.->|"フォールバック"| DEBUGGER
-        subgraph SAFE["Safety 層(概念)"]
+        LEADER -.->|"フォールバック時"| CODER
+        LEADER -.->|"フォールバック時"| DEBUGGER
+        REVIEWER -->|"採点・指摘"| LEADER
+        subgraph SAFE["Safety 層(全エージェントの操作・委譲・プロンプトの前段)"]
             CHECK["危険操作の確認"]
             SECRET["secret 検出"]
             SCOPE["作業範囲の限定"]
             APPROVAL["人間の承認"]
-            CHECK --> APPROVAL
+            REJECT["拒否"]
+            CHECK -->|"有人時は確認"| APPROVAL
+            CHECK -->|"無人時は拒否"| REJECT
         end
         LEADER --> CHECK
         LEADER --> SECRET
@@ -48,7 +51,10 @@ flowchart LR
     CODER --> OUTPUT
     DEBUGGER --> OUTPUT
     OUTPUT --> REVIEWER
+    LEADER -->|"報告"| USER
 ```
+
+Safety 層は、リーダーだけでなく全エージェントの操作・委譲・プロンプトの前段に適用する仕組みです。図中のリーダーから Safety 層への線は、その関係を代表して示しています。危険操作は有人時には確認を求め、無人時には拒否します。
 
 Safety 層を図に置いても、すべての操作が遮断できるという意味にはなりません。削除や公開、本番変更などは、人の判断を必要とする操作です。確認経路には検証済みの部分がありますが、操作種別を網羅した確認は済んでいません。(検証ステータス: 一部検証 / V19)
 
@@ -101,16 +107,16 @@ flowchart TD
     ADOPT --> RESET["連続回数をリセット"]
     FALLBACK --> FINISH["引き継いで検証"]
     REST --> FINISH
-    RESET --> NEXT["次の独立タスクでも Codex を優先"]
+    RESET --> NEXT["次の独立タスクへ"]
     FINISH --> NEXT
     NEXT --> CHECK{"circuit breaker は発動済み?"}
-    CHECK -->|"いいえ"| CODEX
+    CHECK -->|"いいえ / Codex を優先"| CODEX
     CHECK -.->|"はい"| REST
 ```
 
 テスト未実施や不合格のままの報告など、Codex が応答できている失敗は「通常の失敗」です。次の独立タスクでは Codex を再び優先します。引き継ぎ時には既存の差分を確認し、時間切れ後も処理が続いていないかを確かめ、二重編集を避けます。(検証ステータス: 実機検証済み / V03)
 
-呼び出しエラーや時間切れなどの「インフラ系の失敗」は、実装フェーズと統合・デバッグフェーズで別々に数えます。成功または通常の失敗で連続回数を戻し、2回続いたら circuit breaker により、そのフェーズの残りを Claude に切り替えます。発動した運用事例はありますが、発生頻度を評価したものではありません。(検証ステータス: 実機検証済み / V04)
+呼び出しエラーや時間切れなどの「インフラ系の失敗」は、実装フェーズと統合・デバッグフェーズで別々に数えます。連続回数は各フェーズの開始時に0とし、前フェーズの発動は次フェーズへ持ち越しません。成功または通常の失敗で連続回数を戻し、2回続いたら circuit breaker により、そのフェーズの残りを Claude に切り替えます。発動した運用事例はありますが、発生頻度を評価したものではありません。(検証ステータス: 実機検証済み / V04)
 
 ## 載せていないもの
 

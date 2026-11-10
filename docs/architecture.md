@@ -8,34 +8,49 @@ dev-factory は、開発の依頼から成果物の検証までを進める基�
 
 ## 全体構成図
 
-図 A は、判断するリーダー、委譲の中継役、実装担当、独立して検証する担当の関係を示します。線種は受け渡しと制限の仕組みを区別しています。
+図 A は 2 つに分けて示します。図 A-1 は、利用者の依頼を受けたリーダーから、企画・設計・委譲の中継役・実装担当(Codex とフォールバック先)への委譲を示します。図 A-2 は、成果物の独立した検証、記録、保護機構、利用者への報告を示します。利用者・リーダー・Codex・coder と debugger、および「基盤」の枠は、両方の図に出る同じものです。線種は受け渡しと制限の仕組みを区別しています。
+
+図 A-1: 依頼と委譲
 
 ```mermaid
-flowchart LR
-    USER["利用者"] --> LEADER
+flowchart TB
+    USER["利用者"]
     subgraph FACTORY["基盤"]
-        LEADER["リーダー / Claude<br/>判断・委譲・統合"]
-        PLANNER["planner / 企画"]
-        ARCHITECT["architect / 設計"]
-        RELAY["委譲の中継役"]
-        CODEX["Codex / 実装・デバッグ・重い調査"]
-        FB["coder・debugger / Claude<br/>フォールバック先"]
-        REVIEWER["reviewer / Claude<br/>独立した検証"]
-        subgraph GUARD["保護機構"]
-            CHECK["操作前の機械的な判定"]
-            HUMAN["人の確認・承認"]
-        end
+        LEADER["リーダー /<br/>Claude<br/>判断・委譲・統合"]
+        PLANNER["planner /<br/>企画"]
+        ARCHITECT["architect /<br/>設計"]
+        RELAY["委譲の<br/>中継役"]
+        CODEX["Codex /<br/>実装・デバッグ・<br/>重い調査"]
+        FB["coder・debugger /<br/>Claude<br/>フォールバック先"]
     end
-    subgraph PROJ["案件の領域"]
-        STATE["PROJECT_STATE"]
-        OUTPUT["成果物・テスト・文書"]
-    end
+    USER --> LEADER
     LEADER --> PLANNER
     LEADER --> ARCHITECT
     LEADER --> RELAY
     RELAY --> CODEX
-    LEADER -.->|"担当範囲の指示"| CODEX
-    LEADER -->|"失敗確定後の引き継ぎ"| FB
+    LEADER -.->|"担当範囲の<br/>指示"| CODEX
+    LEADER -->|"失敗確定後の<br/>引き継ぎ"| FB
+```
+
+図 A-2: 検証・記録・保護と報告
+
+```mermaid
+flowchart TB
+    subgraph PROJ["案件の領域"]
+        OUTPUT["成果物・<br/>テスト・文書"]
+        STATE["PROJECT_STATE"]
+    end
+    subgraph FACTORY["基盤"]
+        CODEX["Codex /<br/>実装・デバッグ・<br/>重い調査"]
+        FB["coder・debugger /<br/>Claude<br/>フォールバック先"]
+        REVIEWER["reviewer /<br/>Claude<br/>独立した検証"]
+        LEADER["リーダー /<br/>Claude<br/>判断・委譲・統合"]
+        subgraph GUARD["保護機構"]
+            CHECK["操作前の<br/>機械的な判定"]
+            HUMAN["人の確認・承認"]
+        end
+    end
+    USER["利用者"]
     CODEX --> OUTPUT
     FB --> OUTPUT
     OUTPUT --> REVIEWER
@@ -43,11 +58,11 @@ flowchart LR
     LEADER -->|"記録"| STATE
     STATE -->|"再開時に参照"| LEADER
     LEADER ==>|"操作・委譲の前"| CHECK
-    CHECK ==>|"確認が必要な操作"| HUMAN
-    LEADER -->|"報告・判断の依頼"| USER
+    CHECK ==>|"確認が必要な<br/>操作"| HUMAN
+    LEADER --->|"報告・判断の<br/>依頼"| USER
 ```
 
-凡例: 実線は指示や成果物の受け渡し、太線は機械的な判定・制限、破線は宣言・手順に依存する制限です。リーダーから保護機構への太線は、操作や委譲に先立つ検査を代表して示します。
+凡例: 実線は指示や成果物の受け渡し、太線は機械的な判定・制限、破線は宣言・手順に依存する制限です。図 A-2 のリーダーから保護機構への太線は、操作や委譲に先立つ検査を代表して示します。
 
 削除や公開、本番環境の変更では、リーダーが人の判断へ戻す手順を持ちます。特定操作の拒否と承認の運用には確認記録がありますが、対象操作すべての実機確認は済んでいません。図の太線から、あらゆる公開手段を一律に止める保証を読み取ることはできません。(検証ステータス: 一部検証 / V19)
 

@@ -34,7 +34,7 @@ def make_clean_repo(root):
         "# Status\n| ID | 項目 | ステータス | 根拠 | 限界・注記 |\n"
         "|---|---|---|---|---|\n"
         "| V01 | Sample | 実機検証済み | 2026-10: isolated local test succeeded | Static only |\n"
-        "| P08 | Sample | 設計済み(未検証) | Pending | Pending |\n", encoding="utf-8")
+        "| P08 | Sample | 未確認 | Pending | Pending |\n", encoding="utf-8")
     (root / ".gitignore").write_text("\n".join(checker.GITIGNORE_REQUIRED) + "\n", encoding="utf-8")
 
 
@@ -261,12 +261,47 @@ class TestCheckDocs(unittest.TestCase):
         self.replace_status("2026-10: isolated local test succeeded", "short")
         self.assert_failure("status-evidence")
 
+    def test_verified_requires_date(self):
+        self.replace_status("2026-10: isolated local test succeeded",
+                            "substantive evidence without a date")
+        self.assert_failure("status-evidence")
+
+    def test_new_status_labels_accepted(self):
+        self.write(checker.STATUS_PATH,
+                   "# Status\n| ID | 項目 | ステータス | 根拠 | 限界・注記 |\n"
+                   "|---|---|---|---|---|\n"
+                   "| V01 | Sample | 実機検証済み | 2026-10: isolated local test succeeded | Static only |\n"
+                   "| V02 | Sample | 一部検証 | Pending | Pending |\n"
+                   "| V03 | Sample | 実装済み(動作未検証) | Pending | Pending |\n"
+                   "| V04 | Sample | 設計のみ | Pending | Pending |\n"
+                   "| V05 | Sample | 未確認 | Pending | Pending |\n")
+        self.assertEqual(self.execute()[0], 0)
+
+    def test_retired_label_in_canonical_table(self):
+        self.replace_status("未確認", "設計済み(未検証)")
+        code, out, err = self.execute()
+        self.assertEqual((code, err), (1, ""))
+        self.assertIn("[status-label]", out)
+        self.assertIn("[status-retired-label]", out)
+
+    def test_retired_label_in_prose_without_id(self):
+        self.append("docs/roles.md", "旧分類は設計済み(未検証)です。")
+        self.assert_failure("status-retired-label")
+
+    def test_retired_label_fullwidth(self):
+        self.append("docs/roles.md", "旧分類は設計済み（未検証）です。")
+        self.assert_failure("status-retired-label")
+
+    def test_retired_label_in_code_fence(self):
+        self.append("docs/roles.md", "```text\n設計済み(未検証)\n```")
+        self.assert_failure("status-retired-label")
+
     def test_status_duplicate_id(self):
         self.replace_status("| P08 |", "| V01 |")
         self.assert_failure("status-id")
 
     def test_status_invalid_id(self):
-        self.replace_status("| P08 |", "| P09 |")
+        self.replace_status("| P08 |", "| P10 |")
         self.assert_failure("status-id")
 
     def test_status_mismatch_in_prose(self):
@@ -276,6 +311,12 @@ class TestCheckDocs(unittest.TestCase):
     def test_status_mismatch_in_table(self):
         self.append("README.md", "| ID | 項目 | ステータス |\n|---|---|---|\n| V01 | Sample | 一部検証 |")
         self.assert_failure("status-mismatch")
+
+    def test_status_mismatch_with_new_label(self):
+        self.append("docs/roles.md", "本文。(検証ステータス: 実装済み(動作未検証) / V01)")
+        self.assert_failure("status-mismatch")
+        self.replace_status("実機検証済み", "実装済み(動作未検証)")
+        self.assertEqual(self.execute()[0], 0)
 
     def test_status_unknown_id(self):
         self.append("README.md", "(検証ステータス: 一部検証 / V02)")
@@ -287,16 +328,16 @@ class TestCheckDocs(unittest.TestCase):
 
     def test_status_valid_prose_and_multiple_tables(self):
         self.append("README.md", "(検証ステータス: 実機検証済み / V01)\n"
-                    "(検証ステータス: 設計済み(未検証) / P08)")
+                    "(検証ステータス: 未確認 / P08)")
         self.replace_status("| P08 |", "\n| ID | 項目 | ステータス | 根拠 | 限界・注記 |\n"
                             "|---|---|---|---|---|\n| P08 |")
         self.assertEqual(self.execute()[0], 0)
 
     def test_status_full_id_range(self):
-        for prefix, limit in (("V", 24), ("P", 8)):
+        for prefix, limit in (("V", 31), ("P", 9)):
             for number in range(1, limit + 1):
                 self.assertTrue(checker._valid_id(f"{prefix}{number:02d}"))
-        for value in ("V00", "V25", "P00", "P09", "Q01", "V1", "V001"):
+        for value in ("V00", "V32", "P00", "P10", "Q01", "V1", "V001"):
             self.assertFalse(checker._valid_id(value))
 
     def test_status_header_columns(self):

@@ -35,7 +35,9 @@ RECONSTRUCTION_FILES = (
     "examples/dummy-project/spec.md", "examples/dummy-project/PROJECT_STATE.md",
     "examples/dummy-project/REVIEW.md",
 )
-STATUS_LABELS = ("実機検証済み", "一部検証", "設計済み(未検証)")
+STATUS_LABELS = ("実機検証済み", "一部検証", "実装済み(動作未検証)", "設計のみ", "未確認")
+RETIRED_STATUS_LABELS = ("設計済み(未検証)", "設計済み（未検証）")
+VERIFIED_DATE_RE = re.compile(r"\d{4}-\d{2}")
 FORBIDDEN_WORK_RECORDS = (
     "PROJECT_STATE.md", "docs/spec.md", "docs/design.md", "docs/tasks.md",
     "docs/facts.md", "docs/reviews", "memory",
@@ -323,7 +325,7 @@ def _tables(text):
 
 
 def _valid_id(value):
-    return bool(re.fullmatch(r"(?:V(?:0[1-9]|1[0-9]|2[0-4])|P0[1-8])", value))
+    return bool(re.fullmatch(r"(?:V(?:0[1-9]|[12][0-9]|3[01])|P0[1-9])", value))
 
 
 def _status_data(root):
@@ -346,7 +348,8 @@ def _status_data(root):
             seen.add(identifier)
             if label not in STATUS_LABELS:
                 findings.append(_error("status-label", STATUS_PATH, number, "invalid status label"))
-            if label == STATUS_LABELS[0] and (evidence == "-" or len(evidence) < 10):
+            if label == STATUS_LABELS[0] and (evidence == "-" or len(evidence) < 10
+                                              or not VERIFIED_DATE_RE.search(evidence)):
                 findings.append(_error("status-evidence", STATUS_PATH, number, "verified row needs substantive evidence"))
             statuses.setdefault(identifier, label)
     if not count:
@@ -384,6 +387,17 @@ def check_status_consistency(root):
     return findings
 
 
+def check_retired_labels(root):
+    """Reject retired labels in raw Markdown, including code examples."""
+    findings = []
+    for rel, text in _documents(root):
+        for number, line in enumerate(text.splitlines(), 1):
+            if any(label in line for label in RETIRED_STATUS_LABELS):
+                findings.append(_error("status-retired-label", rel, number,
+                                       "retired status label is present"))
+    return findings
+
+
 def check_work_records(root):
     return [_error("work-record", rel, None, "private work record is present")
             for rel in FORBIDDEN_WORK_RECORDS if os.path.lexists(root / rel)]
@@ -407,7 +421,7 @@ def run(argv=None):
         findings = []
         for check in (check_required, check_links, check_reachability, check_mermaid,
                       check_markers, check_status_table, check_status_consistency,
-                      check_work_records, check_gitignore):
+                      check_retired_labels, check_work_records, check_gitignore):
             findings.extend(check(root))
     except (OSError, UnicodeError, ValueError):
         print("ERROR - [runtime] documentation input could not be read", file=sys.stderr)
